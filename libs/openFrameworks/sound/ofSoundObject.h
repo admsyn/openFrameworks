@@ -73,15 +73,12 @@ class ofSoundInput: public ofBaseSoundInput, public ofSoundObject {
 public:
 	ofSoundInput();
 
-	// copy audio in to internal buffer - parameters will
-	// be replaced by ofSoundBuffer
-	void audioIn(float *in, int length, int numChannels);
-	void audioOut(float *out, int length, int numChannels);
+	// copy audio in to internal buffer
+	void audioIn(ofSoundBuffer &input);
+	void audioOut(ofSoundBuffer &output);
 	
 private:
-	float *buff;
-	int length;
-	int numChannels;
+	ofSoundBuffer inputBuffer;
 
 };
 
