@@ -111,7 +111,6 @@ public:
 	/// return the duration of audio in this buffer in milliseconds (==(getNumFrames()/getSampleRate())*1000)
 	unsigned long getDurationMS() const;
 
-
 	/// access the sample at the given position in the buffer.
 	/// to retrieve the sample for channel channelIndex of frame frameIndex, do the following:
 	/// ofSoundBuffer myBuffer;
@@ -160,12 +159,21 @@ public:
 	void getChannel(ofSoundBuffer & outBuffer, int sourceChannel);
 	/// copy data from inBuffer to the given channel. resize ourselves to match inBuffer's getNumFrames().
 	void setChannel(const ofSoundBuffer & inBuffer, int channel);
-
+	
 	float getRMSAmplitude();
 	float getRMSAmplitudeChannel(unsigned int channel);
 	
-	void fillWithNoise();
-	float fillWithTone( float pitchHz, float phase=0 );
+	/// fills the buffer with random noise between -amplitude and amplitude. useful for debugging.
+	void fillWithNoise(float amplitude = 1);
+	
+	/// fills the buffer with a sine wave. useful for debugging.
+	float fillWithTone(float pitchHz = 440., float phase = 0);
+	
+	/// amplifies samples so that the maximum amplitude is equal to 'level'
+	void normalize(float level = 1);
+	
+	/// removes initial / ending silence from the buffer
+	bool trimSilence(float threshold = 0.0001, bool trimStart = true, bool trimEnd = true);
 	
 	/// return the total number of samples in this buffer (==getNumFrames()*getNumChannels())
 	unsigned long size() const { return buffer.size(); }
@@ -179,20 +187,16 @@ public:
 	void set(float value);
 	/// copy data from source, interpreting it as nFrames frames of nChannels channels. resize ourself to fit the incoming data.
 	void set(float * source, unsigned int nFrames, unsigned int nChannels);
-
-	friend class ofBaseSoundStream;
-	
-protected:
 	
 	/// return the underlying buffer. careful!
 	vector<float> & getBuffer();
-	
+
+	friend class ofBaseSoundStream;
+protected:
 
 	// checks that size() and number of channels are consistent, logs a warning if not. returns consistency check result.
 	bool checkSizeAndChannelsConsistency( string function="" );  
-	
-	void linearResampleTo(ofSoundBuffer & buffer, unsigned int fromFrame, unsigned int numFrames, float speed, bool loop);
-	void hermiteResampleTo(ofSoundBuffer & buffer, unsigned int fromFrame, unsigned int numFrames, float speed, bool loop);
+
 	vector<float> buffer;
 	int channels;
 	int samplerate;

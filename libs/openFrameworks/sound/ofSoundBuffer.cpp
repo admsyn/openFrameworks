@@ -42,7 +42,6 @@ vector<float> & ofSoundBuffer::getBuffer(){
 	return buffer;
 }
 
-
 unsigned long ofSoundBuffer::getDurationMS() const{
 	return getNumFrames()/samplerate;
 }
@@ -59,8 +58,6 @@ void ofSoundBuffer::setSampleRate(int rate){
 void ofSoundBuffer::resize(unsigned int samples, float val){
 	buffer.resize(samples,val);
 	checkSizeAndChannelsConsistency("resize(samples,val)");
-
-
 }
 
 void ofSoundBuffer::clear(){
@@ -150,7 +147,6 @@ void ofSoundBuffer::addTo(ofSoundBuffer & soundBuffer, unsigned int nFrames, uns
 void ofSoundBuffer::addTo(ofSoundBuffer & outBuffer, unsigned int fromFrame, bool loop) const{
 	addTo(&outBuffer[0],outBuffer.getNumFrames(),outBuffer.getNumChannels(),fromFrame,loop);
 }
-
 
 void ofSoundBuffer::copyTo(float * out, unsigned int nFrames, unsigned int outChannels,unsigned int fromFrame, bool loop) const{
 	// figure out how many frames we can copy before we need to stop or loop
@@ -243,160 +239,20 @@ void ofSoundBuffer::addTo(float * out, unsigned int nFrames, unsigned int outCha
 	}
 }
 
-
-// based on maximilian optimized for performance.
-// might loose 1 or 2 samples when it reaches the end of the buffer
-void ofSoundBuffer::linearResampleTo(ofSoundBuffer & resBuffer, unsigned int fromFrame, unsigned int numFrames, float speed, bool loop){
-	resBuffer.resize((unsigned int)numFrames*channels);
-	resBuffer.setNumChannels(channels);
-	resBuffer.setSampleRate(samplerate);
-	unsigned int start = fromFrame;
-	unsigned int end = start*channels + double(numFrames*channels)*speed;
-	double position = start;
-	unsigned int intPosition = position;
-	float increment = speed;
-	unsigned int copySize = channels*sizeof(float);
-	unsigned int to;
-	float a,b;
-
-	if(end<buffer.size()-2*channels){
-		to = numFrames;
-	}else if(fromFrame+2>getNumFrames()){
-		to = 0;
-	}else{
-		to = float(getNumFrames()-2-fromFrame)/speed;
-	}
-	float remainder = position - intPosition;
-	float * resBufferPtr = &resBuffer[0];
-
-	for(unsigned int i=0;i<to;i++){
-		intPosition *= channels;
-		for(int j=0;j<channels;j++){
-			//*resBufferPtr++ = ((1-remainder) * buffer[intPosition+channels] +  remainder * buffer[intPosition+2*channels]);
-			a = buffer[intPosition];
-			b = buffer[intPosition+channels];
-			*resBufferPtr++ = ofLerp(a,b,remainder);
-		}
-		position += increment;
-		intPosition = position;
-		remainder = position - intPosition;
-	}
-	if(end>=buffer.size()-2*channels){
-		to = numFrames-to;
-		if(loop){
-			intPosition %= getNumFrames();
-			for(unsigned int i=0;i<to;i++){
-				intPosition *= channels;
-				for(int j=0;j<channels;j++){
-					a = buffer[intPosition];
-					b = buffer[intPosition+channels];
-					*resBufferPtr++ = (b-a)*remainder+a;
-				}
-				resBufferPtr+=channels;
-				position += increment;
-				intPosition = position;
-			}
-		}else{
-			memset(resBufferPtr,0,to*copySize);
-		}
-	}
-}
-
-// based on maximilian optimized for performance.
-// might loose 1 to 3 samples when it reaches the end of the buffer
-void ofSoundBuffer::hermiteResampleTo(ofSoundBuffer & resBuffer, unsigned int fromFrame, unsigned int numFrames, float speed, bool loop){
-	resBuffer.resize((unsigned int)numFrames*channels,0);
-	resBuffer.setNumChannels(channels);
-	resBuffer.setSampleRate(samplerate);
-	unsigned int start = fromFrame;
-	unsigned int end = start*channels + double(numFrames*channels)*speed;
-	double position = start;
-	unsigned int intPosition = position;
-	float remainder = position - intPosition;
-	float increment = speed;
-	unsigned int copySize = channels*sizeof(float);
-	unsigned int to;
-
-	if(end<buffer.size()-3*channels){
-		to = numFrames;
-	}else if(fromFrame+3>getNumFrames()){
-		to = 0;
-	}else{
-		to = double(getNumFrames()-3-fromFrame)/speed;
-	}
-	float * resBufferPtr = &resBuffer[0];
-
-	float a,b,c,d;
-
-	unsigned int from = 0;
-
-	while(intPosition==0){
-		intPosition *= channels;
-		for(int j=0;j<channels;++j){
-			a=loop?buffer[j]:0;
-			b=buffer[intPosition+j];
-			c=buffer[intPosition+j+channels];
-			d=buffer[intPosition+j+channels*2];
-			*resBufferPtr++ = ofHermiteInterpolate(remainder,a,b,c,d);
-		}
-		position += increment;
-		intPosition = position;
-		remainder = position - intPosition;
-		from++;
-	}
-
-	for(unsigned int i=from;i<to;++i){
-		intPosition *= channels;
-		for(int j=0;j<channels;++j){
-			a=buffer[intPosition+j-channels];
-			b=buffer[intPosition+j];
-			c=buffer[intPosition+j+channels];
-			d=buffer[intPosition+j+channels*2];
-			*resBufferPtr++ = ofHermiteInterpolate(remainder,a,b,c,d);
-		}
-		position += increment;
-		intPosition = position;
-		remainder = position - intPosition;
-	}
-
-	if(end>=buffer.size()-3*channels){
-		to = numFrames-to;
-		if(loop){
-			intPosition %= buffer.size();
-			for(unsigned int i=0;i<to;++i){
-				for(int j=0;j<channels;++j){
-					a=buffer[intPosition+j-channels];
-					b=buffer[intPosition+j];
-					c=buffer[intPosition+j+channels];
-					d=buffer[intPosition+j+channels*2];
-					*resBufferPtr++ = ofHermiteInterpolate(remainder,a,b,c,d);
-				}
-				position += increment;
-				intPosition = position;
-				remainder = position - intPosition;
-				intPosition *= channels;
-			}
-		}else{
-			memset(resBufferPtr,0,to*copySize);
-		}
-	}
-}
-
-
 void ofSoundBuffer::resampleTo(ofSoundBuffer & buffer, unsigned int fromFrame, unsigned int numFrames, float speed, bool loop, InterpolationAlgorithm algorithm){
 	switch(algorithm){
-	case Linear:
-		linearResampleTo(buffer,fromFrame,numFrames,speed,loop);
-		break;
-	case Hermite:
-		hermiteResampleTo(buffer,fromFrame,numFrames,speed,loop);
-		break;
+		case Linear:
+			ofResampleLinear(*this, buffer, fromFrame, numFrames, speed, loop);
+			break;
+		case Hermite:
+			ofResampleHermite(*this, buffer, fromFrame, numFrames, speed, loop);
+			break;
 	}
 }
 
 void ofSoundBuffer::resample(float speed, InterpolationAlgorithm algorithm){
 	ofSoundBuffer resampled;
-	resampleTo(resampled,0,getNumFrames()*speed,false,algorithm);
+	resampleTo(resampled, 0, ceilf(getNumFrames() / speed), speed, false, algorithm);
 	*this = resampled;
 }
 
@@ -418,8 +274,7 @@ void ofSoundBuffer::getChannel(ofSoundBuffer & targetBuffer, int sourceChannel) 
 		targetBuffer.resize(getNumFrames());
 		const float * bufferPtr = &this->buffer[0];
 		for(unsigned int i=0;i<getNumFrames();i++){
-			float whatevs = *bufferPtr;
-			buffer[i] = whatevs;
+			buffer[i] = *bufferPtr;
 			bufferPtr+=channels;
 		}
 	}
@@ -458,16 +313,58 @@ float ofSoundBuffer::getRMSAmplitudeChannel(unsigned int channel){
 	return rmsAmplitude;
 }
 
-
-void ofSoundBuffer::fillWithNoise()
-{
-	for ( unsigned i=0; i<size(); i++ ) {
-		buffer[i] = ofRandom(-1, 1);
+void ofSoundBuffer::normalize(float level){
+	float maxAmplitude = 0;
+	for(unsigned i = 0; i < size(); i++) {
+		maxAmplitude = max(maxAmplitude, abs(buffer[i]));
+	}
+	float normalizationFactor = level/maxAmplitude;
+	for(unsigned i = 0; i < size(); i++) {
+		buffer[i] *= normalizationFactor;
 	}
 }
 
-float ofSoundBuffer::fillWithTone( float pitchHz, float phase )
-{
+bool ofSoundBuffer::trimSilence(float threshold, bool trimStart, bool trimEnd) {
+	if(buffer.empty()) {
+		ofLogVerbose("ofSoundBuffer") << "attempted to trim empty buffer";
+		return true;
+	}
+	size_t firstNonSilence = 0;
+	size_t lastNonSilence = buffer.size() - 1;
+	if(trimStart) {
+		for(size_t i = 0; i < buffer.size(); ++i) {
+			if(abs(buffer[i]) > threshold) {
+				firstNonSilence = i;
+				break;
+			}
+		}
+	}
+	if(trimEnd) {
+		for(size_t i = lastNonSilence; i > firstNonSilence; --i) {
+			if(abs(buffer[i]) > threshold) {
+				lastNonSilence = i;
+				break;
+			}
+		}
+	}
+	firstNonSilence -= firstNonSilence % getNumChannels();
+	lastNonSilence  -= lastNonSilence  % getNumChannels();
+	if(trimEnd) {
+		buffer.erase(buffer.begin() + lastNonSilence, buffer.end());
+	}
+	if(trimStart) {
+		buffer.erase(buffer.begin(), buffer.begin() + firstNonSilence);
+	}
+	return checkSizeAndChannelsConsistency("trimSilence");
+}
+
+void ofSoundBuffer::fillWithNoise(float amplitude){
+	for ( unsigned i=0; i<size(); i++ ) {
+		buffer[i] = ofRandom(-amplitude, amplitude);
+	}
+}
+
+float ofSoundBuffer::fillWithTone( float pitchHz, float phase ){
 	float step = TWO_PI*(pitchHz/samplerate);
 	for ( unsigned i=0; i<size()/channels; i++ ) {
 		unsigned int base = i*channels;
@@ -476,5 +373,4 @@ float ofSoundBuffer::fillWithTone( float pitchHz, float phase )
 		phase += step;
 	}
 	return phase;
-	
 }
