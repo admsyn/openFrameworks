@@ -38,5 +38,5 @@ class testApp : public ofxiOSApp{
         void muteOnPressed();
         void muteOffPressed();
 
-        ofiPhoneVideoPlayer video;
+        ofxiOSVideoPlayer video;
 };
