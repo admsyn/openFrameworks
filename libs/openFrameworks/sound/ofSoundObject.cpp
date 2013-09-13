@@ -67,7 +67,7 @@ bool ofSoundObject::checkForInfiniteLoops() {
 void ofSoundObject::audioOut(ofSoundBuffer &output) {
 	if(inputObject!=NULL) {
 		if(workingBuffer.size()!=output.size()) {
-            ofLogWarning("ofSoundObject") << "working buffer size != output buffer size.";
+            ofLogVerbose("ofSoundObject") << "working buffer size != output buffer size.";
             workingBuffer.resize(output.size());
             workingBuffer.setNumChannels(output.getNumChannels());
             workingBuffer.setSampleRate(output.getSampleRate());
@@ -89,7 +89,7 @@ ofSoundInput::ofSoundInput() {
 // copy audio in to internal buffer
 void ofSoundInput::audioIn(ofSoundBuffer &input) {
 	if(inputBuffer.size()!=input.size()) {
-        ofLogWarning("ofSoundinput::audioIn") << "input buffer size != output buffer size.";
+        ofLogVerbose("ofSoundinput::audioIn") << "input buffer size != output buffer size.";
 		inputBuffer.resize(input.size());
         inputBuffer.setNumChannels(inputBuffer.getNumChannels());
         inputBuffer.setSampleRate(inputBuffer.getSampleRate());
@@ -99,7 +99,7 @@ void ofSoundInput::audioIn(ofSoundBuffer &input) {
 	
 void ofSoundInput::audioOut(ofSoundBuffer &output) {
     if(output.getNumFrames()==inputBuffer.getNumFrames()){
-        ofLogWarning("ofSoundinput::audioOut") << "input buffer size != output buffer size.";
+        ofLogVerbose("ofSoundinput::audioOut") << "input buffer size != output buffer size.";
         inputBuffer.resize(output.size());
         inputBuffer.setNumChannels(output.getNumChannels());
         inputBuffer.setSampleRate(output.getSampleRate());
